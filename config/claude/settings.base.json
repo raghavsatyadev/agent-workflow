@@ -1,0 +1,27 @@
+{
+  "permissions": { "deny": ["Artifact", "Workflow", "ScheduleWakeup"] },
+  "model": "opus",
+  "advisorModel": "opus",
+  "outputStyle": "Concise",
+  "enableWorkflows": true,
+  "modelSettings": {
+    "claude-opus-5": { "effortLevel": "high" },
+    "claude-opus-5-5": { "effortLevel": "medium", "autoCompactWindow": 200000 }
+  },
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku",
+    "PLAN_KEEPER_AGY_MODEL": "gemini-3.8-flash-high",
+    "PLAN_KEEPER_OLLAMA_MODEL": "nimble:latest"
+  },
+  "enabledPlugins": {
+    "commit-commands@claude-plugins-official": true,
+    "kotlin-lsp@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "lm-savings@local-model": true,
+    "plan-keeper@raghav-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "local-model": { "source": { "source": "directory", "path": "{{HOME}}/.local-model/mod" } },
+    "raghav-plugins": { "source": { "source": "directory", "path": "{{REPO}}/plugins/plan-keeper" } }
+  }
+}

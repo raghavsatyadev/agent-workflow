@@ -1,0 +1,27 @@
+# caches and environments
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.cache/
+# logs and machine state: never commit (they hold paths and command text)
+*.log
+usage.log
+state/
+# secrets: never commit
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+.credentials.json
+secrets*
+*token*.txt
+# local code graph
+graphify-out/
+# OS / editor noise
+.DS_Store
+Thumbs.db

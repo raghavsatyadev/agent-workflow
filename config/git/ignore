@@ -1,0 +1,7 @@
+# Claude working notes — never commit
+PLAN.md
+DECISIONS.md
+HISTORY.md
+
+# Local code graphs (code-graph skill) — never commit
+graphify-out/
