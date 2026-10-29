@@ -62,7 +62,7 @@ Official plugins the installer also turns on (not copied here): `commit-commands
 
 See [THIRD_PARTY.md](THIRD_PARTY.md) for sources and licenses.
 
-- Google's Android skills: not copied; `install.sh` runs `android skills add --all` (android CLI).
+- Google's Android skills: not copied; Claude Code gets them from the `android-cli@android-cli-plugin` plugin (listed in `settings.base.json`).
 - `prompt-cache-control/`: Claude Code prompt-cache meter mod (davila7/claude-code-templates, MIT).
 - Graphify: installed from PyPI by `code-graph/install.sh`, not copied.
 

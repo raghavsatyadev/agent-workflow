@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs agent-workflow on this PC. Re-run after every pull: it is safe to repeat.
 #   skills/*                                 linked into ~/.agents/skills, ~/.claude/skills, ~/.gemini/skills
-#   Google's Android skills                  installed by the android CLI (android skills add --all)
+#   Google's Android skills                  from the android-cli@android-cli-plugin Claude Code plugin
 #   third-party/prompt-cache-control         linked into ~/.claude/skills (Claude Code mod)
 #   skills/*/install.sh                      tool shims in ~/.local-model, ~/.code-graph, ~/.headless-emu; hooks
 #   plugins/plan-keeper                      Claude Code marketplace "raghav-plugins"
@@ -38,16 +38,6 @@ done
 link_dir "$REPO/third-party/prompt-cache-control" "$HOME/.claude/skills/prompt-cache-control"
 for t in "${agents[@]}"; do prune_dead_links "$t"; done
 echo "  linked $(ls -d "$REPO"/skills/*/ | wc -l | tr -d ' ') skills"
-# Google's Android skills are not copied here (their license files are not redistributed): the
-# android CLI installs and updates them for every agent it finds.
-if [ "${AW_NO_CLI:-0}" != 1 ] && command -v android >/dev/null 2>&1; then
-  prune_dead_links "$HOME/.gemini/antigravity/skills"   # the CLI crashes on a dead link there
-  android skills add --all >/dev/null 2>&1 && android skills update --all >/dev/null 2>&1 &&
-    echo "  Android skills: installed/updated by the android CLI" ||
-    echo "  Android skills: run android skills add --all"
-else
-  echo "  Android skills: install the android CLI, then run android skills add --all"
-fi
 
 if [ "$TOOLS" = 1 ]; then
   echo "Tools"

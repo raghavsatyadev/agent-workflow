@@ -18,10 +18,13 @@
     "kotlin-lsp@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
     "lm-savings@local-model": true,
-    "plan-keeper@raghav-plugins": true
+    "plan-keeper@raghav-plugins": true,
+    "android-cli@android-cli-plugin": true
   },
   "extraKnownMarketplaces": {
     "local-model": { "source": { "source": "directory", "path": "{{HOME}}/.local-model/mod" } },
-    "raghav-plugins": { "source": { "source": "directory", "path": "{{REPO}}/plugins/plan-keeper" } }
-  }
+    "raghav-plugins": { "source": { "source": "directory", "path": "{{REPO}}/plugins/plan-keeper" } },
+    "android-cli-plugin": { "source": { "source": "github", "repo": "android/android-cli-plugin" } }
+  },
+  "attribution": { "commit": "", "pr": "" }
 }
