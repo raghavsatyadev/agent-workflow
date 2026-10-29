@@ -23,9 +23,11 @@ commit message from a small diff, filling a template, simple regex/shell one-lin
 
 - Verdicts on logs/files: `~/.local-model/lm-ask yesno|choice ...` (skill `local-model`; decision model
   `nimble`). Decision 2.0 models (vllm-sr) only as a second opinion until evaluated against nimble.
-- Short generation: Qwen 3.6 35B-A3B (22 GB, ~18 s cold, faster warm):
+- Short generation: Qwen 3.6 35B-A3B (22 GB, ~15 s cold, faster warm). Python, not jq (not installed);
+  the prompt is a normal argument, so quotes in it are safe. `num_ctx` 8192 keeps more of it on the
+  GPU (Ollama's default here is 262k, which put 66% on the CPU):
   ```bash
-  curl -s 127.0.0.1:11434/api/generate -d '{"model":"qwen3.6:35b-a3b","prompt":"...","stream":false,"think":false,"keep_alive":"5m"}' | jq -r .response
+  python -c "import json,sys,urllib.request as u;r=u.urlopen(u.Request('http://127.0.0.1:11434/api/generate',json.dumps({'model':'qwen3.6:35b-a3b','prompt':sys.argv[1],'stream':False,'think':False,'keep_alive':'5m','options':{'num_ctx':8192}}).encode()));print(json.load(r)['response'])" "..."
   ```
 - Check the output yourself before using it; never send secrets. Unload when done
   (`ollama stop qwen3.6:35b-a3b`) so the GPU is free for nimble.
