@@ -84,3 +84,6 @@ Use `model: "opus"` only for the hardest parts, after Sonnet and the advisor are
   x-digest's 533-line `xdigest.py` into `xd/` correctly first try (AST-identical, tests pass).
 - 2026-10-24: routing changed to "Claude plans/reviews, agy implements". agy 1.4.5 smoke test
   (`agy -p ... --model gemini-3.8-flash-high`) answered. Claude Code 2.1.304.
+- 2026-10-29: LFM2.5-24B-A2B tested as the Tier 0 generator: quality tied with qwen, but it always
+  reasons (~1.2k tokens per answer) and Ollama leaves the reasoning in `.response`. Kept qwen. Tier 0
+  curl fixed: `num_ctx` 8192, python instead of jq. Report: `~/.local-model/lfm25-24b-eval-2026-10-29.md`.
