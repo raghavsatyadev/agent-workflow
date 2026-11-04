@@ -56,7 +56,7 @@ Official plugins the installer also turns on (not copied here): `commit-commands
 
 | Server | Where | Notes |
 | --- | --- | --- |
-| `artemis` | its own project (`CurrentProjects/artemis`) | Registered for agy and for the SCUS / BulkYoutubeSearch projects in Claude Code; not copied here |
+| `artemis` | its own project ([google/artemis](https://github.com/google/artemis)) | Registered for agy and for some Claude Code projects; not copied here |
 
 ### Third-party (`third-party/`), copied as used
 
