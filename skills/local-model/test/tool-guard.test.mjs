@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Self-test for lm-enforce.mjs: feeds it hook events and checks deny / allow / notes.
-//   node skills/local-model/test/lm-enforce.test.mjs     (exit 0 = all passed)
+// Self-test for tool-guard.mjs: feeds it hook events and checks deny / allow / notes.
+//   node skills/local-model/test/tool-guard.test.mjs     (exit 0 = all passed)
 // JEV_API_KEY=x makes the "can lm-ask answer?" check pass without Ollama; nothing is sent anywhere.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const hook = path.join(here, "..", "lm-enforce.mjs");
+const hook = path.join(here, "..", "tool-guard.mjs");
 const sid = `selftest-${process.pid}`;
 const state = path.join(os.homedir(), ".local-model", "state", `enforce-${sid}.json`);
 const cwd = path.join(here, ".."); // has a folder (mod/) and files (SKILL.md)
@@ -115,10 +115,10 @@ const third = (a, b, c) => {
   post(...b);
   return post(...c).includes(SEARCH);
 };
-check(third(["Bash", { command: "rg foo" }], ["Grep", { pattern: "x" }], ["Bash", { command: "rg bar mod" }]), "3 code searches: note");
+check(third(["Bash", { command: "rg foo" }], ["Grep", { pattern: "x" }], ["Bash", { command: "rg bar hooks" }]), "3 code searches: note");
 check(!third(["Bash", { command: "rg foo" }], ["Bash", { command: "rg bar" }], ["Bash", { command: "grep -c x SKILL.md" }]), "grep -c on a named file: not a search");
 check(!third(["Bash", { command: "rg foo" }], ["Bash", { command: "rg bar" }], ["Bash", { command: "git status | grep -n M" }]), "pipe filter: not a search");
-check(!third(["Bash", { command: "rg foo" }], ["Bash", { command: "rg bar" }], ["Bash", { command: "rg -n x lm-enforce.mjs" }]), "rg in a named file: not a search");
+check(!third(["Bash", { command: "rg foo" }], ["Bash", { command: "rg bar" }], ["Bash", { command: "rg -n x tool-guard.mjs" }]), "rg in a named file: not a search");
 check(!third(["Bash", { command: "rg foo" }], ["Bash", { command: "rg bar" }], ["Grep", { pattern: "x", output_mode: "count" }]), "Grep count: not a search");
 check(!third(["Bash", { command: "rg foo" }], ["Bash", { command: "rg bar" }], ["Grep", { pattern: "x", path: "SKILL.md" }]), "Grep in a named file: not a search");
 check(third(["Bash", { command: "rg foo" }], ["Bash", { command: "grep -rn x ." }], ["Bash", { command: "rg x 'src/*.kt'" }]), "grep -r and glob: searches");
@@ -131,7 +131,7 @@ check(!post("Bash", { command: "rg c" }).includes(SEARCH), "edit resets the coun
 // ---- steering to gq / jgl, and the one-time deny ----------------------------------------------
 // Temp repos, so the result does not depend on graphs on this machine. The local model is made
 // unreachable, so jgl is never the pick here (classify covers "meaning").
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lm-enforce-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tool-guard-"));
 const mk = (...p) => fs.mkdirSync(path.join(tmp, ...p), { recursive: true });
 mk("g", ".git"); mk("g", "graphify-out"); mk("g", "src");
 fs.writeFileSync(path.join(tmp, "g", "graphify-out", "graph.json"), "{}");
@@ -179,7 +179,7 @@ fs.rmSync(state, { force: true });
 for (let i = 0; i < 6; i++) out = spost("g", "Read", { file_path: path.join(at("g"), "src", "same.kt") });
 check(!out.includes("gq query"), "same file read 6 times: no note");
 
-const { classify, findGraph } = await import(new URL("../lm-steer.mjs", import.meta.url));
+const { classify, findGraph } = await import(new URL("../search-steer.mjs", import.meta.url));
 const kinds = { [String.raw`\bUserRepo\b`]: "name", "class MainActivity": "name", [String.raw`fun onCreate\(`]: "name", "grepInfo|parse": "name",
   user_id: "name", "where is the token refreshed": "meaning", "error: cannot find": "exact", foo: "exact", TODO: "exact" };
 for (const [p, k] of Object.entries(kinds)) check(classify(p).kind === k, `classify ${p}: ${k}`);

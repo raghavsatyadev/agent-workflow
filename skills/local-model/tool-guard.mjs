@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Enforce: makes the agent use lm-ask, jgl and lm-rank instead of pouring logs into its context.
 // Instructions and memory do not do this on their own; a refused call does. One script, two hooks
-// (install.sh adds them):
+// (the token-saver plugin adds them):
 //
 //   PreToolUse   Bash|Read|Grep   denies a log dump before it runs, and names the fix:
 //     - `adb logcat -d` (no -t N), `cat`/`less`/`tac` on a log, `head`/`tail -n` over the line
@@ -17,7 +17,7 @@
 //     Nothing is denied when neither the local model nor a Jev key could answer lm-ask.
 //   PostToolUse  Bash|Grep|Read|Edit|Write|MultiEdit|NotebookEdit   adds a note to the agent's context:
 //     - LOCAL_MODEL_ENFORCE_SEARCHES (default 3) code searches in a row -> names the better tool for
-//       that search (lm-steer.mjs): gq for a code name in a repo with a code graph, jgl for free
+//       that search (search-steer.mjs): gq for a code name in a repo with a code graph, jgl for free
 //       text, else the jgl / lm-rank hint. A code search is rg/grep over a folder, a glob or the
 //       working folder as the first pipeline stage, or the Grep tool on a folder outside count mode;
 //       `cmd | grep x` and a look inside a named file do not count.
@@ -33,9 +33,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { usage } from "./lm-client.mjs";
-import { GREPS, grepInfo, num, parse } from "./lm-shell.mjs";
-import { findGraph, pick } from "./lm-steer.mjs";
+import { canAnswer, usage } from "./lm-client.mjs";
+import { GREPS, grepInfo, num, parse } from "./shell-parse.mjs";
+import { findGraph, pick } from "./search-steer.mjs";
 
 const env = process.env;
 if (env.LOCAL_MODEL_HOOKS === "0" || env.LOCAL_MODEL_ENFORCE === "0") process.exit(0);
@@ -174,28 +174,18 @@ function findDump(pipelines) {
   return null;
 }
 
-// lm-ask can answer: Ollama reachable, or a Jev key set
-async function canAsk() {
-  if (env.JEV_API_KEY) return true;
-  if (env.LOCAL_MODEL_LOCAL === "0") return false;
-  const url = (env.LOCAL_MODEL_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
-  try {
-    await fetch(url, { signal: AbortSignal.timeout(800) });
-    return true;
-  } catch {
-    return false;
-  }
-}
+// lm-ask can answer: a Jev key (env or file) or the local model up
+const canAsk = () => canAnswer({ jev: true });
 
 // needAsk: only deny when lm-ask could answer (the log fixes point at it)
 async function deny(kind, detail, reason, needAsk = true) {
   if (needAsk && !(await canAsk())) process.exit(0);
-  await usage("lm-enforce", 0, 0, `denied ${kind}`, detail);
+  await usage("tool-guard", 0, 0, `denied ${kind}`, detail);
   emit({
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "deny",
-      permissionDecisionReason: `[lm-enforce] ${reason}`,
+      permissionDecisionReason: `[tool-guard] ${reason}`,
     },
   });
   process.exit(0);
@@ -315,14 +305,14 @@ if (searchPattern !== null) {
   if (state.searches >= SEARCHES) {
     const better = await pick(searchPattern, cwd);
     notes.push(
-      `[lm-enforce] ${state.searches} text searches in a row. ` +
+      `[tool-guard] ${state.searches} text searches in a row. ` +
         (better
           ? `For "${short(searchPattern)}" use ${better.text}`
           : `If you do not know the exact name, ask by meaning: \`~/.local-model/jgl --files "<what the code does>"\`. ` +
             `If the hits are many, let \`~/.local-model/lm-rank\` pick the files worth opening. Keep rg for exact names and error strings.`) +
         (state.nudges >= 1 ? ` The next search like this is refused once.` : ""),
     );
-    await usage("lm-enforce", 0, 0, `search-nudge${better ? "-" + better.tool : ""}`, tool === "Grep" ? `Grep ${ti.pattern}` : command);
+    await usage("tool-guard", 0, 0, `search-nudge${better ? "-" + better.tool : ""}`, tool === "Grep" ? `Grep ${ti.pattern}` : command);
     state.searches = 0;
     state.nudges = (state.nudges || 0) + 1;
     if (state.nudges >= 2) state.force = true;
@@ -336,10 +326,10 @@ if (searchPattern !== null) {
   if (reads.size >= READS) {
     if (findGraph(cwd).graph) {
       notes.push(
-        `[lm-enforce] ${reads.size} files opened with no edit. To learn how code fits together, ask the code graph: ` +
+        `[tool-guard] ${reads.size} files opened with no edit. To learn how code fits together, ask the code graph: ` +
           `\`bash ~/.code-graph/gq query "<question>"\` or \`gq explain "<Name>"\` (file:line, callers, callees).`,
       );
-      await usage("lm-enforce", 0, 0, "read-nudge-gq", f);
+      await usage("tool-guard", 0, 0, "read-nudge-gq", f);
     }
     state.reads = [];
   }

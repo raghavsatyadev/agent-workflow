@@ -8,9 +8,12 @@
 # Backends, all on the same /v1/systemone API:
 #   local  Nimble or Tev1 on Ollama (default Nimble) or Laya: free, on this PC.
 #   jev    TypeSafe's hosted Jev: paid per input token, 32K-token state. Used ONLY when the caller
-#          allows it (LOCAL_MODEL_ALLOW_JEV=1; the hooks never do) AND the text is too long for the
-#          local model, or no local model answers. Short text never goes to Jev.
+#          allows it (LOCAL_MODEL_ALLOW_JEV=1; the hooks never do) and a key exists. Main backend
+#          jev (lm_backend): Jev first, the local model when Jev fails. Main backend local: Jev
+#          only when the text is too long for the local model or no local model answers.
 #
+#   LM_BACKEND               main backend, local | jev; else the word in ~/.local-model/backend
+#                       (lm-backend writes it), else local. LOCAL_MODEL_LOCAL=0 also means jev.
 #   LOCAL_MODEL_HOOKS=0      turn every backend off
 #   LOCAL_MODEL_URL          local backend, default http://127.0.0.1:11434 (Laya: http://127.0.0.1:8000)
 #   LOCAL_MODEL_NAME        default nimble (tev1:4b, tev1:0.8b; Laya: laya)
@@ -18,13 +21,13 @@
 #                       more than 8194 tokens and dense Gradle logs run ~2.4 bytes a token.
 #   LOCAL_MODEL_KEEP_ALIVE   how long Ollama keeps the model loaded after a call, default 10m
 #   LOCAL_MODEL_LOCAL=0      skip the local backend (Jev only)
-#   JEV_API_KEY         TypeSafe API key; else read from ~/.config/typesafe/api_key. None = no Jev.
+#   JEV_API_KEY         TypeSafe API key (set but empty = none); else ~/.config/typesafe/api_key.
 #   JEV_URL / JEV_MODEL default https://api.typesafe.ai / jev-latest
 #   JEV_MAX_BYTES       Jev input budget, default 100000 (~28K tokens, under the 32K state limit)
 #   LOCAL_MODEL_ALLOW_JEV    1 lets this call use Jev (lm-ask sets it); default 0
 #
 #   lm_ask <max_seconds> <questions_json>  < state_text
-#       Prints the response JSON on one line and sets LOCAL_MODEL_BACKEND (local|jev; only seen when
+#       Prints the response JSON on one line and sets LM_USED (local|jev; only seen when
 #       not called inside $(...), e.g. `lm_ask ... >file`). Returns 1
 #       on any failure. The state is made ASCII-safe, JSON-escaped and cut to its TAIL (the end of
 #       a log is where the failure is).
@@ -43,14 +46,22 @@ LOCAL_MODEL_KEEP_ALIVE="${LOCAL_MODEL_KEEP_ALIVE:-10m}"
 JEV_URL="${JEV_URL:-https://api.typesafe.ai}"
 JEV_MODEL="${JEV_MODEL:-jev-latest}"
 JEV_MAX_BYTES="${JEV_MAX_BYTES:-100000}"
-LOCAL_MODEL_BACKEND=""
+LM_USED=""
 
 lm_enabled() {
   [ "${LOCAL_MODEL_HOOKS:-1}" != "0" ] && command -v curl >/dev/null 2>&1
 }
 
+# Main backend: local | jev.
+lm_backend() {
+  local b="${LM_BACKEND:-}"
+  [ -n "$b" ] || b=$(tr -d ' \r\n' 2>/dev/null <"${HOME}/.local-model/backend")
+  [ -n "$b" ] || { [ "${LOCAL_MODEL_LOCAL:-1}" = "0" ] && b=jev; }
+  [ "$b" = "jev" ] && echo jev || echo local
+}
+
 _jev_key() {
-  if [ -n "${JEV_API_KEY:-}" ]; then printf '%s' "$JEV_API_KEY"; return 0; fi
+  if [ -n "${JEV_API_KEY+x}" ]; then printf '%s' "$JEV_API_KEY" | tr -d ' \r\n'; return 0; fi
   local f="${HOME}/.config/typesafe/api_key"
   [ -s "$f" ] && tr -d ' \r\n' <"$f"
 }
@@ -122,30 +133,39 @@ _lm_warm() {
 
 lm_ask() {
   lm_enabled || return 1
-  local max_time="$1" questions="$2" raw size key="" resp
-  LOCAL_MODEL_BACKEND=""
+  local max_time="$1" questions="$2" raw size key="" resp jt
+  LM_USED=""
   # NUL bytes cannot live in a shell variable; drop them. 1 MB is far past any budget.
   raw=$(tail -c 1000000 | tr -d '\000')
   size=${#raw}
   [ "${LOCAL_MODEL_ALLOW_JEV:-0}" = "1" ] && key=$(_jev_key)
+  jt=$((max_time > 20 ? max_time : 20))
+  # Main backend jev: Jev first; the local model when Jev fails (bad key, quota, offline).
+  if [ -n "$key" ] && [ "$(lm_backend)" = "jev" ]; then
+    if resp=$(_lm_post "$JEV_URL" "$JEV_MODEL" "$key" "$JEV_MAX_BYTES" "$jt" "$questions" "$raw"); then
+      _jev_log "$resp"; LM_USED=jev; printf '%s\n' "$resp"; return 0
+    fi
+    [ "${LOCAL_MODEL_LOCAL:-1}" != "0" ] || return 1
+    resp=$(_lm_post "$LOCAL_MODEL_URL" "$LOCAL_MODEL_NAME" "" "$LOCAL_MODEL_MAX_BYTES" "$max_time" "$questions" "$raw") || return 1
+    LM_USED=local; printf '%s\n' "$resp"; return 0
+  fi
   # Short enough for the local model: local only; Jev only when no local model answers.
   if [ "$size" -le "$LOCAL_MODEL_MAX_BYTES" ] || [ -z "$key" ]; then
-    if [ "${LOCAL_MODEL_LOCAL:-1}" != "0" ] \
-      && resp=$(_lm_post "$LOCAL_MODEL_URL" "$LOCAL_MODEL_NAME" "" "$LOCAL_MODEL_MAX_BYTES" "$max_time" "$questions" "$raw"); then
-      LOCAL_MODEL_BACKEND=local; printf '%s\n' "$resp"; return 0
+    if [ "${LOCAL_MODEL_LOCAL:-1}" != "0" ] && resp=$(_lm_post "$LOCAL_MODEL_URL" "$LOCAL_MODEL_NAME" "" "$LOCAL_MODEL_MAX_BYTES" "$max_time" "$questions" "$raw"); then
+      LM_USED=local; printf '%s\n' "$resp"; return 0
     fi
     _lm_warm
     [ -n "$key" ] || return 1
   fi
   # Too long for the local model (or no local answer), and the caller allows Jev.
-  if resp=$(_lm_post "$JEV_URL" "$JEV_MODEL" "$key" "$JEV_MAX_BYTES" "$((max_time > 20 ? max_time : 20))" "$questions" "$raw"); then
+  if resp=$(_lm_post "$JEV_URL" "$JEV_MODEL" "$key" "$JEV_MAX_BYTES" "$jt" "$questions" "$raw"); then
     _jev_log "$resp"
-    LOCAL_MODEL_BACKEND=jev; printf '%s\n' "$resp"; return 0
+    LM_USED=jev; printf '%s\n' "$resp"; return 0
   fi
   # Jev failed (bad key, quota, offline): the local model on the tail beats nothing.
   [ "$size" -gt "$LOCAL_MODEL_MAX_BYTES" ] && [ "${LOCAL_MODEL_LOCAL:-1}" != "0" ] || return 1
   resp=$(_lm_post "$LOCAL_MODEL_URL" "$LOCAL_MODEL_NAME" "" "$LOCAL_MODEL_MAX_BYTES" "$max_time" "$questions" "$raw") || return 1
-  LOCAL_MODEL_BACKEND=local; printf '%s\n' "$resp"
+  LM_USED=local; printf '%s\n' "$resp"
 }
 
 lm_get() {

@@ -1,5 +1,5 @@
-// Shell parsing for the lm-enforce hook: enough of bash to find pipeline stages, their words and
-// redirects, plus rg/grep option parsing. No side effects; lm-enforce.mjs imports it.
+// Shell parsing for the tool-guard hook: enough of bash to find pipeline stages, their words and
+// redirects, plus rg/grep option parsing. No side effects; tool-guard.mjs imports it.
 import path from "node:path";
 
 const LINES = Number(process.env.LOCAL_MODEL_ENFORCE_LINES || 30);

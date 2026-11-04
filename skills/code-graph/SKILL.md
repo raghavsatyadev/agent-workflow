@@ -1,6 +1,6 @@
 ---
 name: code-graph
-description: Ask a local code graph (Graphify) instead of searching and opening files to learn how a repo fits together. Use gq query/explain/affected/path before a chain of rg/grep/Read calls when the question is "where does X live", "what uses X", "what breaks if I change X" or "how does A reach B". Built offline from tree-sitter ASTs, rebuilt by gq when code changes; savings show in /lm-savings.
+description: Ask a local code graph (Graphify) instead of searching and opening files to learn how a repo fits together. Use gq query/explain/affected/path before a chain of rg/grep/Read calls when the question is "where does X live", "what uses X", "what breaks if I change X" or "how does A reach B". Built offline from tree-sitter ASTs, rebuilt by gq when code changes; savings show in /tool-savings.
 ---
 
 # Code graph: ask the map, not the files
@@ -24,7 +24,7 @@ Later calls rebuild it (incremental) when a source file is newer than the graph.
 - Use it **first** for structure questions in a repo you have not read in this session, instead of 3+
   rg/Read calls. Then open only the files and lines it names.
 - An exact identifier or error string → plain `rg` (one call, no graph needed).
-- The local-model `lm-enforce` hook steers repeated rg/Grep for a code name, and a run of Reads, to
+- The local-model `tool-guard` hook steers repeated rg/Grep for a code name, and a run of Reads, to
   `gq` in repos with a graph, and refuses one such search after two ignored notes.
 - An ambiguous name exits 3 and lists node ids: retry with the id.
 - `query` output is capped at ~2000 tokens; narrow the question rather than raising `--budget`.
@@ -38,7 +38,7 @@ The graph is a map, not proof. Calls through an object are often missing, for ex
 
 ## Savings
 
-Each `gq` question adds a row (`graphify`) to `~/.local-model/usage.log`, so `/lm-savings` (local-model skill)
+Each `gq` question adds a row (`graphify`) to `~/.local-model/usage.log`, so `/tool-savings` (local-model skill)
 shows calls and saved tokens next to lm-ask and lm-gate. The estimate: bytes of the source files the answer
 points at (first 5, `GQ_FILES`), as if they had been searched and opened, minus the answer's own bytes, at 4
 bytes a token. It is an upper-end estimate: an agent without the graph might open fewer files.

@@ -2,14 +2,27 @@
 # Starts the local decision tools at the start of a session, so the first lm-ask or jgl call
 # does not wait for a cold load: starts Ollama when it is installed but not running, loads the
 # model (kept LOCAL_MODEL_KEEP_ALIVE, default 10m, after the last call) and starts the jgl proxy.
-# Returns at once; the start and the load run in the background. Safe to run again.
-#   lm-on           # Claude Code runs this from the global SessionStart hook
+# Returns at once; the start and the load run in the background. Safe to run again. With Jev as
+# the main backend (lm-backend) the model is not loaded: the hooks then run only if Ollama is up.
+#   lm-on           # the token-saver plugin runs this at SessionStart
 d="$(cd "$(dirname "$0")" && pwd)"
 url="${LOCAL_MODEL_URL:-http://127.0.0.1:11434}"; url="${url%/}"
 model="${LOCAL_MODEL_NAME:-nimble}"
 [ "${LOCAL_MODEL_HOOKS:-1}" = "0" ] && exit 0
-case "$url" in *:11434*) ;; *) echo "lm-on: $url is not Ollama; nothing to load"; exit 0 ;; esac
 mkdir -p "$HOME/.local-model"
+port="${JG_PROXY_PORT:-11435}"
+proxy() {
+  if [ -f "$d/jg-local-proxy.mjs" ] && command -v node >/dev/null 2>&1 \
+     && ! curl -s -m 1 "http://127.0.0.1:$port/api/v1/me" >/dev/null 2>&1; then
+    nohup node "$d/jg-local-proxy.mjs" >"$HOME/.local-model/jg-proxy.log" 2>&1 &
+  fi
+}
+backend="${LM_BACKEND:-$(tr -d ' \r\n' 2>/dev/null <"$HOME/.local-model/backend")}"
+[ -n "$backend" ] || { [ "${LOCAL_MODEL_LOCAL:-1}" = "0" ] && backend=jev; }
+if [ "$backend" = "jev" ]; then
+  proxy; echo "lm-on: backend jev (paid); jgl on :$port. Use lm-ask and jgl first."; exit 0
+fi
+case "$url" in *:11434*) ;; *) proxy; echo "lm-on: $url is not Ollama; jgl on :$port"; exit 0 ;; esac
 
 # Start Ollama: the desktop app on Windows and macOS (it keeps the user's settings, such as
 # listening on the network), else `ollama serve`. Only for an Ollama on this PC.
@@ -37,10 +50,6 @@ fi
   curl -s -m 120 "$url/api/generate" \
     -d "{\"model\":\"$model\",\"keep_alive\":\"${LOCAL_MODEL_KEEP_ALIVE:-10m}\"}" >/dev/null 2>&1 ) \
   >/dev/null 2>&1 &
-port="${JG_PROXY_PORT:-11435}"
-if [ -f "$d/jg-local-proxy.mjs" ] && command -v node >/dev/null 2>&1 \
-   && ! curl -s -m 1 "http://127.0.0.1:$port/api/v1/me" >/dev/null 2>&1; then
-  nohup node "$d/jg-local-proxy.mjs" >"$HOME/.local-model/jg-proxy.log" 2>&1 &
-fi
-echo "lm-on: ${started}loading $model; jgl proxy on :$port. Use lm-ask and jgl first (skill local-model)."
+proxy
+echo "lm-on: ${started}loading $model; jgl on :$port. Use lm-ask and jgl first."
 exit 0

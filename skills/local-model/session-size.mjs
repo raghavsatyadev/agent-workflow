@@ -95,7 +95,7 @@ function main() {
     `This session is ${age}${k}k tokens of context; every reply re-reads all of it. ` +
     `If this is a new request, a new session is cheaper (carry over only what it needs).`;
   const ctxNote =
-    `[lm-session] ${msg} If the user's request is unrelated to the earlier work in this session, ` +
+    `[session-size] ${msg} If the user's request is unrelated to the earlier work in this session, ` +
     `do not do it here: reply only that it is a new task for a new session, plus a short brief to paste ` +
     `there (only the context it needs). Do it here only if the user then insists. ` +
     `If it continues the same work, say nothing about this.`;
@@ -110,5 +110,5 @@ function main() {
 
 try {
   const r = main();
-  if (r) await usage("lm-session", 0, 0, `warned ${r.k}k ${r.hours.toFixed(1)}h`, "");
+  if (r) await usage("session-size", 0, 0, `warned ${r.k}k ${r.hours.toFixed(1)}h`, "");
 } catch {}

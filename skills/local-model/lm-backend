@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Prints or sets the main backend for lm-ask, lm-rank, lm-diffcheck and jgl.
+#   lm-backend          # prints local or jev
+#   lm-backend local    # the local model on Ollama (Nimble): free, default
+#   lm-backend jev      # TypeSafe Jev: paid, needs JEV_API_KEY or ~/.config/typesafe/api_key
+# Saved in ~/.local-model/backend; LM_BACKEND overrides it for one shell. The hooks always stay
+# local. A failed Jev call falls back to the local model.
+f="$HOME/.local-model/backend"
+case "${1:-}" in
+  "") b="${LM_BACKEND:-$(tr -d ' \r\n' 2>/dev/null <"$f")}"
+      [ -n "$b" ] || { [ "${LOCAL_MODEL_LOCAL:-1}" = "0" ] && b=jev; }
+      [ "$b" = "jev" ] && echo jev || echo local ;;
+  local|jev) mkdir -p "$(dirname "$f")" && echo "$1" >"$f" && echo "lm-backend: $1"
+      if [ "$1" = jev ] && [ -z "${JEV_API_KEY:-}" ] && [ ! -s "$HOME/.config/typesafe/api_key" ]; then
+        echo "lm-backend: no TypeSafe key yet (JEV_API_KEY or ~/.config/typesafe/api_key); the local model answers until then" >&2
+      fi
+      [ -n "${LM_BACKEND:-}" ] && [ "$LM_BACKEND" != "$1" ] && echo "lm-backend: LM_BACKEND=$LM_BACKEND overrides it in this shell" >&2
+      exit 0 ;;
+  *) sed -n '2,7p' "$0" >&2; exit 64 ;;
+esac

@@ -16,13 +16,13 @@
 //   otherwise, when error lines are found -> the agent sees the error lines and the last 20 lines.
 //   otherwise, no model (lm-ask exit 2) or anything unexpected -> the output is left unchanged.
 //
-// The full output is saved in ~/.local-model/gate/*.out (newest 60 kept; not .log, which lm-enforce
+// The full output is saved in ~/.local-model/gate/*.out (newest 60 kept; not .log, which tool-guard
 // would refuse to print) and every shortened output
 // names that file, so the agent can still read all of it.
 //
 // Off: LOCAL_MODEL_HOOKS=0 or LOCAL_MODEL_GATE=0 in the environment, LOCAL_MODEL_COMPRESS=0 for
 // compress mode only, or LM_GATE=0 in the command (`LM_GATE=0 ./gradlew test`). Never uses Jev.
-// One line per shortened call in usage.log, which /lm-savings sums.
+// One line per shortened call in usage.log, which /tool-savings sums.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";

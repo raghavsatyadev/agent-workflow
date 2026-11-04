@@ -1,44 +1,42 @@
 #!/usr/bin/env node
-// Local stand-in for jevgrep.com's /api/v1/grep, answered by the local model on Ollama. Lets `jg` judge
-// snippets on this PC: nothing leaves the machine.
+// Local stand-in for jevgrep.com's /api/v1/grep, answered by the main backend (lm-client.mjs): the
+// local model on Ollama by default, so nothing leaves the PC; Jev when LM_BACKEND=jev, falling back
+// to the local model when a Jev call fails.
 //
 //   node ~/.local-model/jg-local-proxy.mjs          # listens on 127.0.0.1:11435
 //   JEVGREP_ENDPOINT=http://127.0.0.1:11435 JEVGREP_TOKEN=local jg "search intent" [paths]
 //
 // Each snippet is one Noul ("could this snippet be what the query looks for?") with the query and
 // snippet as named state fields, as in TypeSafe's re-ranking cookbook. The noul is the score.
-// Env: LOCAL_MODEL_URL (default http://127.0.0.1:11434), LOCAL_MODEL_NAME (nimble), LOCAL_MODEL_KEEP_ALIVE (2m),
-// LOCAL_MODEL_MAX_BYTES (16000; the snippet gets 3/4 of it, at most 12000),
-// JG_PROXY_PORT (11435), JG_PROXY_CONCURRENCY (4).
+// Env: as lm-client.mjs (LM_BACKEND, LOCAL_MODEL_URL, LOCAL_MODEL_NAME, LOCAL_MODEL_MAX_BYTES: the
+// snippet gets 3/4 of it, at most 12000), JG_PROXY_PORT (11435), JG_PROXY_CONCURRENCY (4).
 import http from 'node:http';
+import { backend, post, targets } from './lm-client.mjs';
 
-const BASE = (process.env.LOCAL_MODEL_URL || 'http://127.0.0.1:11434').replace(/\/$/, '');
-const MODEL = process.env.LOCAL_MODEL_NAME || 'nimble';
-const KEEP_ALIVE = process.env.LOCAL_MODEL_KEEP_ALIVE || '2m';
 const PORT = Number(process.env.JG_PROXY_PORT || 11435);
 const CONCURRENCY = Number(process.env.JG_PROXY_CONCURRENCY || 4);
 // Characters per snippet: keeps one request inside the model's window (Nimble ~8K tokens, Tev1 ~2K).
 const MAX_SNIPPET = Math.min(12000, Math.floor(Number(process.env.LOCAL_MODEL_MAX_BYTES || 16000) * 0.75));
+const QUESTIONS = { match: { type: 'noul', instructions:
+  'Is `snippet` (source code, with its file path in `context` when given) a place a developer ' +
+  'searching for `query` would want to open: it implements, defines or directly handles what ' +
+  '`query` describes? Merely mentioning a related word is not enough.' } };
 
 async function judge(query, snippet) {
   const state = { query, snippet: snippet.text.slice(0, MAX_SNIPPET) };
   if (snippet.context) state.context = String(snippet.context).slice(0, 2000);
-  const res = await fetch(`${BASE}/v1/systemone`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    signal: AbortSignal.timeout(25000),
-    body: JSON.stringify({
-      model: MODEL, keep_alive: KEEP_ALIVE, state,
-      questions: { match: { type: 'noul', instructions:
-        'Is `snippet` (source code, with its file path in `context` when given) a place a developer ' +
-        'searching for `query` would want to open: it implements, defines or directly handles what ' +
-        '`query` describes? Merely mentioning a related word is not enough.' } },
-    }),
-  });
-  if (!res.ok) throw new Error(`Local model HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const p = (await res.json())?.answers?.match?.noul;
-  if (typeof p !== 'number' || !Number.isFinite(p)) throw new Error('Local model gave no noul');
-  return Math.min(1, Math.max(0, p));
+  const ts = targets({ jev: true });
+  if (!ts.length) throw new Error('No backend: local model off and no Jev key');
+  let why = '';
+  for (const t of ts) {
+    const res = await post(t, { state, questions: QUESTIONS }, t.key ? 30000 : 25000);
+    try {
+      const p = JSON.parse(res)?.answers?.match?.noul;
+      if (typeof p === 'number' && Number.isFinite(p)) return Math.min(1, Math.max(0, p));
+    } catch {}
+    why = `${t.name}: ${String(res ?? 'no response').slice(0, 200)}`;
+  }
+  throw new Error(`No score (${why})`);
 }
 
 async function grep(body) {
@@ -62,4 +60,4 @@ http.createServer(async (req, res) => {
   } catch (e) {
     send(e.status || 503, { error: String(e.message || e) });
   }
-}).listen(PORT, '127.0.0.1', () => console.error(`jg-local-proxy on http://127.0.0.1:${PORT} -> ${BASE} (${MODEL})`));
+}).listen(PORT, '127.0.0.1', () => console.error(`jg-local-proxy on http://127.0.0.1:${PORT} -> ${targets({ jev: true }).map((t) => `${t.name} ${t.model}`).join(', then ')} (backend ${backend()})`));

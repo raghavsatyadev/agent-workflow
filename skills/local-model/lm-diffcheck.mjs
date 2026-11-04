@@ -13,7 +13,8 @@
 // Output: one "<P(yes)> <file>: <question>" line per flag (yes >= LM_DIFFCHECK_MIN, default 0.7),
 // or "lm-diffcheck: no flags (N files, M checks)". A flag is a lead to look at, not a finding.
 // The UserPromptExpansion hook runs it before /code-review, /review, /security-review and
-// /simplify and adds the flags to the prompt (--hook mode). Never uses Jev.
+// /simplify and adds the flags to the prompt (--hook mode, local model only). Run by hand it uses
+// Jev when that is the main backend (LM_BACKEND).
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -112,7 +113,7 @@ await pool(files, 3, async (f) => {
   const text = `File: ${f.name}\nDiff (lines starting with + are added, - are removed):\n${f.hunks.slice(0, 12000)}`;
   bytes += Buffer.byteLength(text);
   asked += qs.length;
-  const a = await ask(text, questions, { timeoutMs: 15000 });
+  const a = await ask(text, questions, { timeoutMs: 15000, jev: !hook });
   if (!a) return;
   qs.forEach((c, i) => {
     const p = a[`q${i}`]?.noul;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Self-test for lm-session.mjs: synthetic transcripts in a temp folder, checks warn / quiet.
-//   node skills/local-model/test/lm-session.test.mjs     (exit 0 = all passed)
+// Self-test for session-size.mjs: synthetic transcripts in a temp folder, checks warn / quiet.
+//   node skills/local-model/test/session-size.test.mjs     (exit 0 = all passed)
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -8,8 +8,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const hook = path.join(here, "..", "lm-session.mjs");
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lm-session-"));
+const hook = path.join(here, "..", "session-size.mjs");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "session-size-"));
 const stateDir = path.join(os.homedir(), ".local-model", "state");
 const env = { ...process.env, LOCAL_MODEL_USAGE_LOG: "0" };
 for (const k of ["LOCAL_MODEL_HOOKS", "LOCAL_MODEL_SESSION", "LM_SESSION_CTX", "LM_SESSION_HOURS", "LM_SESSION_EVERY"]) delete env[k];

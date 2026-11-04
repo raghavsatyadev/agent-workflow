@@ -1,69 +1,60 @@
 #!/usr/bin/env bash
 # Extra setup for the local-model skill; agent-workflow/install.sh runs it after it links the skill.
-#   ~/.local-model/                shims (one-line launchers, not copies) for local-model.sh, lm-ask, lm-on,
-#                                  lm-off, jgl, lm-rank, lm-diffcheck and the Node hooks (lm-client, lm-gate,
-#                                  lm-loop, lm-enforce, lm-route, lm-session, ...); they run this folder's files.
-#                                  The folder also keeps usage.log, state/ and gate/.
-#   ~/.claude/settings.json        Claude Code hooks: SessionStart lm-on, SessionEnd lm-off,
-#                                  PostToolUse lm-gate (long Bash output compressed, build/test verdict), Pre/PostToolUse(Failure)
-#                                  lm-loop (repeated failures), Pre/PostToolUse lm-enforce (log dumps
-#                                  denied, search notes), UserPromptSubmit lm-route (request
-#                                  size hint) and lm-session (long-session warning), UserPromptExpansion lm-diffcheck (before /code-review)
-#   mod/ (this folder)             Claude Code mods, as the `local-model` plugin marketplace:
-#                                  lm-savings (/lm-savings sums usage.log). Needs Claude Code 2.1.287+.
-# Re-run to update. Moves an install from before the rename (the `nimble` skill, ~/.nimble/,
-# nimble-on/off hooks) over: keeps its usage.log, removes the rest.
+#   ~/.local-model/          shims (one-line launchers, not copies) for local-model.sh, lm-ask, lm-on,
+#                            lm-off, lm-backend, jgl, lm-rank, lm-diffcheck and the Node hooks (lm-client,
+#                            lm-gate, lm-loop, tool-guard, lm-route, session-size, ...); they run this
+#                            folder's files. The folder also keeps usage.log, backend, state/ and gate/.
+#   token-saver plugin       this folder is a Claude Code plugin and its own marketplace: the hooks
+#                            (hooks/hooks.json) and the /tool-savings mod. See README.md.
+# Re-run to update. Migrates older installs: the `nimble` skill and ~/.nimble/ (keeps usage.log),
+# the global hooks in ~/.claude/settings.json, the lm-savings@local-model mod, the shims of renamed
+# scripts and the ~/.claude/skills/local-model link (the plugin loads the skill now).
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 bin="$HOME/.local-model"
 . "$here/../../scripts/shim.sh"
-shim "$bin" "$here/local-model.sh" "$here"/lm-ask "$here"/lm-off "$here"/lm-on "$here"/jgl "$here"/lm-rank "$here"/lm-diffcheck "$here"/*.mjs
+shim "$bin" "$here/local-model.sh" "$here"/lm-ask "$here"/lm-off "$here"/lm-on "$here"/lm-backend "$here"/jgl "$here"/lm-rank "$here"/lm-diffcheck "$here"/*.mjs
+# Shims of renamed scripts, and the copy of the old mod.
+rm -rf "$bin/lm-enforce.mjs" "$bin/lm-steer.mjs" "$bin/lm-session.mjs" "$bin/lm-shell.mjs" "$bin/mod"
 old="$HOME/.nimble"
 if [ -d "$old" ]; then
   [ -f "$old/usage.log" ] && cat "$old/usage.log" >>"$bin/usage.log"
   rm -rf "$old"
 fi
 rm -rf "$HOME/.claude/nimble" "$HOME/.claude/skills/nimble" "$HOME/.gemini/skills/nimble" "$HOME/.agents/skills/nimble"
-# Global Claude Code hooks, so every project turns the model on at start and off at end.
-# Drops the old nimble-on/off hooks; skipped when an lm-on / lm-off hook is already there; the
-# Node hooks are replaced each run.
+# The plugin loads the skill for Claude Code; a skills link too would list it twice.
+lnk="$HOME/.claude/skills/local-model"
+if [ -L "$lnk" ] || [ -d "$lnk" ]; then
+  if command -v cygpath >/dev/null 2>&1; then MSYS2_ARG_CONV_EXCL='*' cmd /c rmdir "$(cygpath -w "$lnk")" >/dev/null 2>&1 || true
+  else rm -f "$lnk" 2>/dev/null || true; fi
+fi
+# Old global hooks and the lm-savings mod entries in ~/.claude/settings.json: the plugin has them now.
 node - "$HOME/.claude/settings.json" <<'JS'
 const fs = require("fs"), f = process.argv[2];
-const s = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : {};
-s.hooks ??= {};
-const add = (event, oldScript, script, command, extra = {}) => {
-  let list = (s.hooks[event] ??= []).filter((h) => !JSON.stringify(h).includes(oldScript));
-  if (!JSON.stringify(list).includes(script)) list.push({ ...extra, hooks: [{ type: "command", command }] });
-  s.hooks[event] = list;
-};
-add("SessionStart", "nimble-on", "lm-on", 'bash "$HOME/.local-model/lm-on"');
-add("SessionEnd", "nimble-off", "lm-off", 'bash "$HOME/.local-model/lm-off" "${LOCAL_MODEL_NAME:-nimble}"');
-const node = (script, args = "") => `node "$HOME/.local-model/${script}"${args}`;
-add("PostToolUse", "lm-gate.mjs", "lm-gate.mjs", node("lm-gate.mjs"), { matcher: "Bash" });
-add("PreToolUse", "lm-loop.mjs", "lm-loop.mjs", node("lm-loop.mjs"), { matcher: "Bash" });
-add("PostToolUse", "lm-loop.mjs", "lm-loop.mjs", node("lm-loop.mjs"), { matcher: "Bash|Edit|Write|MultiEdit|NotebookEdit" });
-add("PostToolUseFailure", "lm-loop.mjs", "lm-loop.mjs", node("lm-loop.mjs"), { matcher: "Bash" });
-add("PreToolUse", "lm-enforce.mjs", "lm-enforce.mjs", node("lm-enforce.mjs"), { matcher: "Bash|Read|Grep" });
-add("PostToolUse", "lm-enforce.mjs", "lm-enforce.mjs", node("lm-enforce.mjs"), { matcher: "Bash|Grep|Read|Edit|Write|MultiEdit|NotebookEdit" });
-add("UserPromptSubmit", "lm-route.mjs", "lm-route.mjs", node("lm-route.mjs"));
-add("UserPromptSubmit", "lm-session.mjs", "lm-session.mjs", node("lm-session.mjs"));
-add("UserPromptExpansion", "lm-diffcheck.mjs", "lm-diffcheck.mjs", node("lm-diffcheck.mjs", " --hook"), {
-  matcher: "code-review|review|security-review|simplify",
-});
+if (!fs.existsSync(f)) process.exit(0);
+const s = JSON.parse(fs.readFileSync(f, "utf8"));
+const OLD = /\.local-model\/(lm-on|lm-off|lm-gate\.mjs|lm-loop\.mjs|lm-enforce\.mjs|tool-guard\.mjs|lm-route\.mjs|lm-session\.mjs|session-size\.mjs|lm-diffcheck\.mjs)|nimble-(on|off)/;
+for (const [ev, list] of Object.entries(s.hooks ?? {})) {
+  const keep = list
+    .map((g) => ({ ...g, hooks: (g.hooks ?? []).filter((h) => !OLD.test(h.command ?? "")) }))
+    .filter((g) => g.hooks.length);
+  if (keep.length) s.hooks[ev] = keep;
+  else delete s.hooks[ev];
+}
+if (s.hooks && !Object.keys(s.hooks).length) delete s.hooks;
+delete s.enabledPlugins?.["lm-savings@local-model"];
+delete s.extraKnownMarketplaces?.["local-model"];
 fs.writeFileSync(f, JSON.stringify(s, null, 2) + "\n");
 JS
-# Mods: a local marketplace read from this folder; an installed plugin is cached by version, so bump
-# plugin.json to update. An older install pointed the marketplace at a copy in ~/.local-model/mod.
-if command -v claude >/dev/null 2>&1; then
-  mp="$here/mod"; command -v cygpath >/dev/null 2>&1 && mp="$(cygpath -w "$mp")"
-  if [ -d "$bin/mod" ]; then
-    claude plugin marketplace remove local-model >/dev/null 2>&1 || true
-    rm -rf "$bin/mod"
-  fi
-  # add and install succeed on a re-run without picking up a new version, so update both every time.
+# The plugin: this folder is its own marketplace. Updated every run (add and install do not pick up a
+# new version on a re-run).
+if [ "${AW_NO_CLI:-0}" != 1 ] && command -v claude >/dev/null 2>&1; then
+  mp="$here"; command -v cygpath >/dev/null 2>&1 && mp="$(cygpath -w "$mp")"
+  claude plugin uninstall lm-savings@local-model >/dev/null 2>&1 || true
+  claude plugin marketplace remove local-model >/dev/null 2>&1 || true
   claude plugin marketplace add "$mp" >/dev/null 2>&1 || true
-  claude plugin marketplace update local-model >/dev/null 2>&1 || true
-  claude plugin install lm-savings@local-model >/dev/null 2>&1 || true
-  claude plugin update lm-savings@local-model >/dev/null 2>&1 || true
+  claude plugin marketplace update token-saver >/dev/null 2>&1 || true
+  claude plugin install token-saver@token-saver >/dev/null 2>&1 || true
+  claude plugin update token-saver@token-saver >/dev/null 2>&1 || true
 fi
-echo "Installed: shims in $bin, hooks in ~/.claude/settings.json, mods from $here/mod"
+echo "Installed: shims in $bin, plugin token-saver@token-saver (hooks, /tool-savings), backend $(bash "$here/lm-backend")"

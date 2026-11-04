@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # gq: Graphify code-graph questions for agents. Runs from the repo root (git top level), builds the graph the
 # first time, rebuilds it (code only, offline, incremental) when source files changed, then passes the command
-# to graphify. Each question is logged to ~/.local-model/usage.log, so /lm-savings shows what it saved.
+# to graphify. Each question is logged to ~/.local-model/usage.log, so /tool-savings shows what it saved.
 #   gq query "<question>"   the part of the graph about a question (callers, callees, files, lines)
 #   gq explain "<name>"     one symbol and its neighbours        gq path "<A>" "<B>"  how A reaches B
 #   gq affected "<name>"    what uses <name> (before a change)    gq god-nodes         the most connected parts
 #   gq build                rebuild now
 # Saved estimate: the bytes of the source files the answer points at (up to GQ_FILES, default 5: the files an
-# agent would otherwise search and open), minus the answer's own bytes; /lm-savings counts 4 bytes a token.
+# agent would otherwise search and open), minus the answer's own bytes; /tool-savings counts 4 bytes a token.
 set -u
 command -v graphify >/dev/null 2>&1 || { echo "gq: graphify is not installed (uv tool install graphifyy)" >&2; exit 2; }
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"

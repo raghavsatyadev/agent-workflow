@@ -1,4 +1,4 @@
-// Picks the better tool for a code search, for the lm-enforce hook:
+// Picks the better tool for a code search, for the tool-guard hook:
 //   gq   (code graph) for a code name (CamelCase, snake_case, `class X`, `fun X`, a|b of names) in
 //        a repo that uses Graphify (graphify-out/graph.json at its root, or at the main checkout
 //        of a worktree; gq builds the worktree's own graph on first use in a few seconds)
@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { backend, canAnswer } from "./lm-client.mjs";
 
 const exists = (p) => {
   try {
@@ -62,17 +63,8 @@ export function classify(pattern) {
   return { kind: "exact", names: [] };
 }
 
-// Ollama reachable (jgl judges snippets with the local model)
-export async function localUp() {
-  if (process.env.LOCAL_MODEL_LOCAL === "0") return false;
-  const url = (process.env.LOCAL_MODEL_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
-  try {
-    await fetch(url, { signal: AbortSignal.timeout(800) });
-    return true;
-  } catch {
-    return false;
-  }
-}
+// jgl can judge snippets: the main backend is Jev with a key, or the local model is up.
+export const localUp = () => canAnswer({ jev: backend() === "jev" });
 
 const GQ = "bash ~/.code-graph/gq";
 const gqInstalled = () => exists(process.env.LOCAL_MODEL_GQ || path.join(os.homedir(), ".code-graph", "gq"));

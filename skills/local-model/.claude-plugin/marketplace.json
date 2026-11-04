@@ -1,0 +1,13 @@
+{
+  "name": "token-saver",
+  "owner": { "name": "Raghav Satyadev", "email": "raghavsatyadev@gmail.com" },
+  "metadata": { "description": "token-saver: local-model hooks and tools that keep Claude's context small" },
+  "plugins": [
+    {
+      "name": "token-saver",
+      "source": "./",
+      "description": "Local-model hooks and tools that keep Claude's context small; /tool-savings shows the savings.",
+      "version": "1.0.0"
+    }
+  ]
+}

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Ask the local decision model (Nimble, Tev1 or Laya), or Jev when the text is too long for it, one
-# question about text on stdin.
+# Ask the main backend (lm-backend: the local model, Nimble by default, or Jev) one question about
+# text on stdin.
 #
 #   lm-ask yesno  "<question>"                       < file   -> "yes 0.97 local"
 #   lm-ask choice "<question>" label="desc" ...      < file   -> "<label> 0.93 jev"
 #
 # Fields: answer, P(yes) or the chosen label's probability, backend (local | jev).
-# Jev (paid) is used only when the input is longer than the local budget, or no local model
-# answers, and a TypeSafe key is set. LOCAL_MODEL_ALLOW_JEV=0 forbids it for one call.
+# Jev (paid, needs a TypeSafe key): first when it is the main backend, the local model when it
+# fails; else only for input over the local budget. LOCAL_MODEL_ALLOW_JEV=0 forbids it per call.
 # Exit 0 = answered, 2 = no backend answered (read the text the normal way), 64 = usage.
 # Env: see local-model.sh. LOCAL_MODEL_TIMEOUT (seconds, default 30) covers a cold model load.
 set -u
@@ -55,11 +55,11 @@ if lm_ask "${LOCAL_MODEL_TIMEOUT:-30}" "$qs" <"$in" >"$tmp"; then
   resp=$(cat "$tmp")
   if [ "$kind" = yesno ]; then
     if v=$(lm_get "$resp" a noul); then
-      if lm_ge "$v" 0.5; then out="yes $v $LOCAL_MODEL_BACKEND"; else out="no $v $LOCAL_MODEL_BACKEND"; fi
+      if lm_ge "$v" 0.5; then out="yes $v $LM_USED"; else out="no $v $LM_USED"; fi
     fi
   elif c=$(lm_get "$resp" a choice); then
     p=$(lm_get "$resp" a p) || p="?"
-    out="$c $p $LOCAL_MODEL_BACKEND"
+    out="$c $p $LM_USED"
   fi
 fi
 usage_log "${out:-failed}"

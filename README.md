@@ -22,23 +22,23 @@ On Windows, run it from Git Bash (`"C:/Program Files/Git/bin/bash.exe" install.s
 
 | Skill | What it does | Installs |
 | --- | --- | --- |
-| `local-model` | Local Ollama model (`nimble`) for yes/no verdicts on long output (`lm-ask`), search by meaning (`jgl`), file ranking (`lm-rank`), diff rule checks (`lm-diffcheck`); `/lm-savings` | `~/.local-model/`, Claude Code hooks, `lm-savings` mod |
+| `local-model` | Local Ollama model (`nimble`) for yes/no verdicts on long output (`lm-ask`), search by meaning (`jgl`), file ranking (`lm-rank`), diff rule checks (`lm-diffcheck`); main backend local or Jev (`lm-backend`) | `~/.local-model/`, the `token-saver` Claude Code plugin |
 | `code-graph` | Graphify code graph: `gq query/explain/affected/path` instead of grep-and-read; skips submodules | Graphify (uv tool `graphifyy`), `~/.code-graph/gq` |
 | `headless-emulator` | Android emulators with no window, viewed in a browser tab (`emu up/shot/web/down/idle`) | `~/.headless-emu/emu` |
 | `agent-routing` | Picks the cheapest model per subtask (Claude plans, agy implements, local model for verdicts) | — |
 | `ats`, `ats-smart` | Resume ATS score (script) and a judgement-based resume review against a job description | — |
 | `tool-usage-report` | Temporary: end-of-session report on lm-ask / jgl / rg use | — |
 
-Hooks that `local-model/install.sh` adds to `~/.claude/settings.json`:
+Hooks in the `token-saver` plugin (`skills/local-model` is the plugin; its `install.sh` registers it):
 
 | Event | Hook | Effect |
 | --- | --- | --- |
-| SessionStart / SessionEnd | `lm-on` / `lm-off` | Load and unload the local model |
+| SessionStart / SessionEnd | `lm-on` / `lm-off --own` | Load and unload the local model |
 | PostToolUse (Bash) | `lm-gate.mjs` | Compresses long build/test output into a verdict |
 | Pre/PostToolUse(Failure) | `lm-loop.mjs` | Spots the same failure repeating |
-| Pre/PostToolUse | `lm-enforce.mjs` | Blocks log dumps, nudges toward `jgl`/`gq` after repeated text searches |
+| Pre/PostToolUse | `tool-guard.mjs` | Blocks log dumps, nudges toward `jgl`/`gq` after repeated text searches |
 | UserPromptSubmit | `lm-route.mjs` | Request-size hint (which model fits the task) |
-| UserPromptSubmit | `lm-session.mjs` | Warns when the session is long (context over 100k tokens, or 3 h old and over 50k): start a new session for a new request |
+| UserPromptSubmit | `session-size.mjs` | Warns when the session is long (context over 100k tokens, or 3 h old and over 50k): start a new session for a new request |
 | UserPromptExpansion (`/code-review`, `/simplify`…) | `lm-diffcheck.mjs` | Runs the project's rule checks over the diff first |
 
 ### Plugins (`plugins/`)
@@ -46,7 +46,7 @@ Hooks that `local-model/install.sh` adds to `~/.claude/settings.json`:
 | Plugin | What it does |
 | --- | --- |
 | `plan-keeper` | Keeps `.claude/PLAN.md` / `DECISIONS.md` / `HISTORY.md` per project; agy rewrites the plan after each turn |
-| `lm-savings` (in `skills/local-model/mod/`) | `/lm-savings`: tokens saved by the local model and the code graph |
+| `token-saver` (in `skills/local-model/`) | The hooks above and `/tool-savings`: tokens saved by the local model and the code graph |
 
 Official plugins the installer also turns on (not copied here): `commit-commands`, `code-review`,
 `kotlin-lsp` from `claude-plugins-official`. agy plugins in use: `android-cli-plugin`,

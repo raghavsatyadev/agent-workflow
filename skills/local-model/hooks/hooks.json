@@ -1,0 +1,113 @@
+{
+  "description": "token-saver hooks. They run the shims in ~/.local-model (install.sh writes them), so script edits apply at once; bump the plugin version for changes to this file.",
+  "modules": [
+    "./register.js"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.local-model/lm-on\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.local-model/lm-off\" --own"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/lm-loop.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/tool-guard.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/lm-gate.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/lm-loop.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Grep|Read|Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/tool-guard.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/lm-loop.mjs\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/lm-route.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/session-size.mjs\""
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "matcher": "code-review|review|security-review|simplify",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.local-model/lm-diffcheck.mjs\" --hook"
+          }
+        ]
+      }
+    ]
+  }
+}

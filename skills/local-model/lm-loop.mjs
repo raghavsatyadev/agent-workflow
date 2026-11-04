@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Loop stop: catches an agent re-running a failing Bash command without progress.
-// One script, three Claude Code hooks (install.sh adds them):
+// One script, three Claude Code hooks (the token-saver plugin adds them):
 //   PostToolUse         Bash|Edit|Write|MultiEdit|NotebookEdit   records successes and edits
 //   PostToolUseFailure  Bash                                       records the failure; warns
 //   PreToolUse          Bash                                       blocks one blind retry

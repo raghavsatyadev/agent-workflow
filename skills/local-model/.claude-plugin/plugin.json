@@ -1,0 +1,7 @@
+{
+  "name": "token-saver",
+  "version": "1.0.0",
+  "description": "Saves Claude tokens: a local model (Nimble on Ollama) compresses long tool output, stops retry loops, refuses log dumps and steers searches; lm-ask, jgl, lm-rank and lm-diffcheck answer instead of reading files; /tool-savings shows the savings.",
+  "author": { "name": "Raghav Satyadev", "email": "raghavsatyadev@gmail.com" },
+  "keywords": ["tokens", "context", "local-model", "ollama", "hooks"]
+}

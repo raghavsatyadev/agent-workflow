@@ -1,7 +1,10 @@
-// /lm-savings: sums ~/.local-model/usage.log, one tab-separated row per local-model call:
+// /tool-savings: sums ~/.local-model/usage.log, one tab-separated row per local-model call:
 // time, tool, ms, bytes in, result, cwd, detail. Answers without a Claude turn.
 
 const DAY = 86400000
+
+// usage.log rows written under older tool names count with their new name.
+const RENAMED = { 'nimble-ask': 'lm-ask', 'lm-enforce': 'tool-guard', 'lm-session': 'session-size' }
 
 // Local YYYY-MM-DD.
 function day(t) {
@@ -11,11 +14,11 @@ function day(t) {
 
 // Bytes Claude did not read because the local model read them instead.
 // lm-gate: the output shrank from `bytes in` to the byte count at the end of its result.
-// lm-ask / nimble-ask: Claude got a verdict instead of the input.
+// lm-ask: Claude got a verdict instead of the input.
 // graphify (gq, code-graph skill): the files the answer points at, minus the answer (an estimate).
 function saved(tool, bytesIn, result) {
   if (tool === 'lm-gate' || tool === 'graphify') return Math.max(0, bytesIn - (Number(result.split(' ').pop()) || 0))
-  if (tool === 'lm-ask' || tool === 'nimble-ask') return bytesIn
+  if (tool === 'lm-ask') return bytesIn
   return 0
 }
 
@@ -42,16 +45,16 @@ function summarize(text, arg, now) {
     const t = Date.parse(f[0])
     if (!(t >= from)) continue
     if (first === null || t < first) first = t
-    const tool = f[1]
+    const tool = RENAMED[f[1]] || f[1]
     const bytesIn = Number(f[3]) || 0
     const r = rows[tool] || (rows[tool] = { calls: 0, ms: 0, bytes: 0, saved: 0, notes: {} })
     r.calls += 1
     r.ms += Number(f[2]) || 0
     r.bytes += bytesIn
     r.saved += saved(tool, bytesIn, f[4])
-    // lm-gate compressed/passed/failed, graphify query/explain/affected, lm-route easy/hard, lm-loop denied/warned/same, lm-enforce denied/nudged/search-nudge, diffcheck flags
+    // lm-gate compressed/passed/failed, graphify query/explain/affected, lm-route easy/hard, lm-loop denied/warned/same, tool-guard denied/nudged/search-nudge, diffcheck flags
     const word = f[4].split(' ')[0]
-    if (tool === 'lm-route' || tool === 'lm-loop' || tool === 'lm-enforce' || tool === 'lm-gate' || tool === 'graphify') r.notes[word] = (r.notes[word] || 0) + 1
+    if (tool === 'lm-route' || tool === 'lm-loop' || tool === 'tool-guard' || tool === 'lm-gate' || tool === 'graphify') r.notes[word] = (r.notes[word] || 0) + 1
     if (tool === 'lm-diffcheck') r.notes.flags = (r.notes.flags || 0) + (Number(word) || 0)
   }
   const tools = Object.keys(rows).sort((a, b) => rows[b].saved - rows[a].saved || rows[b].calls - rows[a].calls)
@@ -91,8 +94,8 @@ export function register(on) {
   on('session.start', async ($, e, next) => {
     try {
       await $.command.register({
-        name: 'lm-savings',
-        description: 'What the local model saved (from ~/.local-model/usage.log)',
+        name: 'tool-savings',
+        description: 'Tokens saved by lm-ask, lm-gate, gq and the other tools (from ~/.local-model/usage.log)',
         argumentHint: '[days|today|all]',
         immediate: true,
       })
@@ -100,7 +103,7 @@ export function register(on) {
     return next(e)
   })
 
-  on('command.run', { command: 'lm-savings' }, async ($, e) => {
+  on('command.run', { command: 'tool-savings' }, async ($, e) => {
     const home = (await $.env.get('USERPROFILE')) || (await $.env.get('HOME'))
     const file = (await $.env.get('LOCAL_MODEL_USAGE_LOG_FILE')) || home + '/.local-model/usage.log'
     if (!(await $.fs.exists(file))) return { text: 'No usage log at ' + file }

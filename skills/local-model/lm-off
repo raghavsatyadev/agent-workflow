@@ -4,10 +4,12 @@
 # next call. Safe to run any time; prints what it unloaded. Exit 0 even when Ollama is off.
 #   lm-off            # all loaded models
 #   lm-off nimble     # just one
+#   lm-off --own      # just LOCAL_MODEL_NAME (default nimble); the plugin's SessionEnd hook
 url="${LOCAL_MODEL_URL:-http://127.0.0.1:11434}"
 case "$url" in *:11434*) ;; *) url="http://127.0.0.1:11434" ;; esac   # Laya is not Ollama
 url="${url%/}"
-if [ $# -gt 0 ]; then models="$*"; else
+if [ "${1:-}" = "--own" ]; then models="${LOCAL_MODEL_NAME:-nimble}"
+elif [ $# -gt 0 ]; then models="$*"; else
   models=$(curl -s -m 3 "$url/api/ps" 2>/dev/null | tr ',' '\n' | sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
 fi
 [ -n "$models" ] || { echo "lm-off: nothing loaded"; exit 0; }

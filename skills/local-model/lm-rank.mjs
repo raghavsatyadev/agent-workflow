@@ -84,7 +84,7 @@ const scored = await pool(items, 4, async ([file, hits]) => {
   let p = null;
   for (const s of parts) {
     bytes += Buffer.byteLength(s);
-    const v = await yesno(`File: ${file}\n${s}`, `Is this file relevant to the task: ${task}?`, { timeoutMs: 15000 });
+    const v = await yesno(`File: ${file}\n${s}`, `Is this file relevant to the task: ${task}?`, { timeoutMs: 15000, jev: true });
     if (v !== null && (p === null || v > p)) p = v;
   }
   return { file, hits, p };

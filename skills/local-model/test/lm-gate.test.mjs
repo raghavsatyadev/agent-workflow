@@ -69,7 +69,7 @@ check(run("LM_GATE=0 curl -s x", big) === null, "LM_GATE=0: off");
 check(run("curl -s x", "small output") === null, "small output: unchanged");
 check(run("curl -s x", noisy.slice(0, 9000).replace(/\d+/g, "")) !== undefined, "no crash on odd input");
 const line = fs.readFileSync(log, "utf8").trim().split("\n")[0].split("\t");
-check(line[1] === "lm-gate" && /^compressed 0\.\d+ \d+$/.test(line[4]), `usage.log line for /lm-savings: ${line[4]}`);
+check(line[1] === "lm-gate" && /^compressed 0\.\d+ \d+$/.test(line[4]), `usage.log line for /tool-savings: ${line[4]}`);
 fs.rmSync(log, { force: true });
 
 console.log(failed ? `${failed} failed` : "all passed");

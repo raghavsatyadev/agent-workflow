@@ -17,12 +17,12 @@
     "commit-commands@claude-plugins-official": true,
     "kotlin-lsp@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
-    "lm-savings@local-model": true,
+    "token-saver@token-saver": true,
     "plan-keeper@raghav-plugins": true,
     "android-cli@android-cli-plugin": true
   },
   "extraKnownMarketplaces": {
-    "local-model": { "source": { "source": "directory", "path": "{{HOME}}/.local-model/mod" } },
+    "token-saver": { "source": { "source": "directory", "path": "{{REPO}}/skills/local-model" } },
     "raghav-plugins": { "source": { "source": "directory", "path": "{{REPO}}/plugins/plan-keeper" } },
     "android-cli-plugin": { "source": { "source": "github", "repo": "android/android-cli-plugin" } }
   },
