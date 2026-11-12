@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shim <bin dir> <file>...: put a one-line launcher for each repo file in <bin dir>, instead of a
 # copy. The launcher runs the repo file, so a pull updates every tool at once and nothing drifts.
-# Used by skills/*/install.sh. (File symlinks need admin or developer mode on Windows; shims don't.)
+# Used by skills/global/*/install.sh. (File symlinks need admin or developer mode on Windows; shims don't.)
 #   *.mjs  -> export * from "file:///.../x.mjs"   (runs it; re-exports for modules that import it)
 #   *.sh   -> . "/.../x.sh"                        (sourced helpers)
 #   others -> exec bash "/.../x" "$@"              (the script's dirname is the repo folder)

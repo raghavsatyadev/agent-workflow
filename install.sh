@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # Installs agent-workflow on this PC. Re-run after every pull: it is safe to repeat.
-#   skills/*                                 linked into ~/.agents/skills, ~/.claude/skills, ~/.gemini/skills
+#   skills/global/*                          linked into ~/.agents/skills, ~/.claude/skills, ~/.gemini/skills
 #                                            (not ~/.claude/skills for a skill that is a Claude Code plugin)
 #   Google's Android skills                  from the android-cli@android-cli-plugin Claude Code plugin
 #   third-party/prompt-cache-control         linked into ~/.claude/skills (Claude Code mod)
-#   skills/*/install.sh                      tool shims in ~/.local-model, ~/.code-graph, ~/.headless-emu; hooks
+#   skills/global/*/install.sh               tool shims in ~/.local-model, ~/.code-graph, ~/.headless-emu; hooks
 #   plugins/plan-keeper                      Claude Code marketplace "raghav-plugins"
-#   skills/local-model                       Claude Code plugin and marketplace "token-saver" (its install.sh)
+#   skills/global/local-model                Claude Code plugin and marketplace "token-saver" (its install.sh)
 #   config/claude/settings.base.json         merged into ~/.claude/settings.json (your values win)
 #   config/claude/CLAUDE.md                  ~/.claude/CLAUDE.md becomes a one-line @import of it
 #   config/gemini/rules, config/git/ignore   linked (~/.gemini/rules junction; git core.excludesFile)
 #   config/gemini/GEMINI.md                  copied when missing (agy ignores imports; --config overwrites, with .bak)
-# Not installed globally: project/ (Android project kit). Link it per project with
-#   bash scripts/link-project.sh <project-dir>
+# Not installed globally: the Android project kit (skills/android, rules/android). Link it per
+# project with: bash scripts/link-project.sh <project-dir>
 # Skills are links, so editing a skill here changes it everywhere at once. A real folder found where
 # a link goes is moved to ~/.agents/backup-<date>/, never deleted.
 # Usage: bash install.sh [--config] [--no-tools]
@@ -34,7 +34,7 @@ export REPO BACKUP FORCE_CONFIG
 
 echo "Skills"
 agents=("$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.gemini/skills")
-for d in "$REPO"/skills/*/; do
+for d in "$REPO"/skills/global/*/; do
   [ -f "$d/SKILL.md" ] || continue
   s="$(basename "$d")"
   for t in "${agents[@]}"; do
@@ -45,11 +45,11 @@ for d in "$REPO"/skills/*/; do
 done
 link_dir "$REPO/third-party/prompt-cache-control" "$HOME/.claude/skills/prompt-cache-control"
 for t in "${agents[@]}"; do prune_dead_links "$t"; done
-echo "  linked $(ls -d "$REPO"/skills/*/ | wc -l | tr -d ' ') skills"
+echo "  linked $(ls -d "$REPO"/skills/global/*/ | wc -l | tr -d ' ') skills"
 
 if [ "$TOOLS" = 1 ]; then
   echo "Tools"
-  for i in "$REPO"/skills/*/install.sh; do bash "$i" | sed 's/^/  /'; done
+  for i in "$REPO"/skills/global/*/install.sh; do bash "$i" | sed 's/^/  /'; done
 fi
 
 echo "Config"

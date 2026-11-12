@@ -22,7 +22,7 @@
     "android-cli@android-cli-plugin": true
   },
   "extraKnownMarketplaces": {
-    "token-saver": { "source": { "source": "directory", "path": "{{REPO}}/skills/local-model" } },
+    "token-saver": { "source": { "source": "directory", "path": "{{REPO}}/skills/global/local-model" } },
     "raghav-plugins": { "source": { "source": "directory", "path": "{{REPO}}/plugins/plan-keeper" } },
     "android-cli-plugin": { "source": { "source": "github", "repo": "android/android-cli-plugin" } }
   },

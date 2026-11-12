@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Link agent-workflow's shared project kit (project/skills, project/rules) into an Android project.
+# Link agent-workflow's Android project kit (skills/android, rules/android) into an Android project.
 #
 #   bash scripts/link-project.sh <project-dir> [--replace] [--check]
 #
@@ -18,7 +18,7 @@ set -euo pipefail
 export MSYS=winsymlinks:nativestrict
 
 AW="$(cd "$(dirname "$0")/.." && pwd)"
-KIT="$AW/project"
+SKILLS="$AW/skills/android" RULES="$AW/rules/android"
 P="" REPLACE=0 CHECK=0
 for a in "$@"; do
   case "$a" in
@@ -70,11 +70,11 @@ link() {
   fi
 }
 
-echo "Linking $KIT -> $P"
-for d in "$KIT"/skills/*/; do
-  n="$(basename "$d")"; link "$KIT/skills/$n" ".agents/skills/$n"
+echo "Linking $SKILLS, $RULES -> $P"
+for d in "$SKILLS"/*/; do
+  n="$(basename "$d")"; link "$SKILLS/$n" ".agents/skills/$n"
 done
-for f in "$KIT"/rules/*.md; do
+for f in "$RULES"/*.md; do
   n="$(basename "$f")"; link "$f" ".agents/rules/$n"
 done
 # Claude Code reads .claude/skills/ only: link every skill there, shared or project-only.

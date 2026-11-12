@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Self-test for tool-guard.mjs: feeds it hook events and checks deny / allow / notes.
-//   node skills/local-model/test/tool-guard.test.mjs     (exit 0 = all passed)
+//   node skills/global/local-model/test/tool-guard.test.mjs     (exit 0 = all passed)
 // JEV_API_KEY=x makes the "can lm-ask answer?" check pass without Ollama; nothing is sent anywhere.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";

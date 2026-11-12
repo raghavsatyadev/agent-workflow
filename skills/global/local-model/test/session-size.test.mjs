@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Self-test for session-size.mjs: synthetic transcripts in a temp folder, checks warn / quiet.
-//   node skills/local-model/test/session-size.test.mjs     (exit 0 = all passed)
+//   node skills/global/local-model/test/session-size.test.mjs     (exit 0 = all passed)
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";

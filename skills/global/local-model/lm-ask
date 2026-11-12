@@ -12,7 +12,7 @@
 # Env: see local-model.sh. LOCAL_MODEL_TIMEOUT (seconds, default 30) covers a cold model load.
 set -u
 d="$(dirname "$0")"
-if [ -f "$d/local-model.sh" ]; then . "$d/local-model.sh"; else . "$d/../../scripts/local-model.sh"; fi
+if [ -f "$d/local-model.sh" ]; then . "$d/local-model.sh"; else . "$d/../../../scripts/local-model.sh"; fi
 export LOCAL_MODEL_ALLOW_JEV="${LOCAL_MODEL_ALLOW_JEV:-1}" LOCAL_MODEL_CALLER=lm-ask
 
 kind="${1:-}"; question="${2:-}"

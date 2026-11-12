@@ -12,7 +12,7 @@
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 bin="$HOME/.local-model"
-. "$here/../../scripts/shim.sh"
+. "$here/../../../scripts/shim.sh"
 shim "$bin" "$here/local-model.sh" "$here"/lm-ask "$here"/lm-off "$here"/lm-on "$here"/lm-backend "$here"/jgl "$here"/lm-rank "$here"/lm-diffcheck "$here"/*.mjs
 # Shims of renamed scripts, and the copy of the old mod.
 rm -rf "$bin/lm-enforce.mjs" "$bin/lm-steer.mjs" "$bin/lm-session.mjs" "$bin/lm-shell.mjs" "$bin/mod"

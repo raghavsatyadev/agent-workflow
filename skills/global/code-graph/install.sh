@@ -10,6 +10,6 @@ elif command -v pipx >/dev/null 2>&1; then
 else
   echo "code-graph: install uv (winget install astral-sh.uv, or https://docs.astral.sh/uv) and re-run" >&2; exit 1
 fi
-. "$here/../../scripts/shim.sh"
+. "$here/../../../scripts/shim.sh"
 shim "$HOME/.code-graph" "$here/gq"
 echo "code-graph: $(graphify --version 2>/dev/null || echo 'graphify not on PATH: run uv tool update-shell'), gq in ~/.code-graph"

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Self-test for lm-gate.mjs compress mode and lm-compress.mjs, with no local model
 // (LOCAL_MODEL_LOCAL=0, so the word-overlap fallback picks blocks).
-//   node skills/local-model/test/lm-gate.test.mjs     (exit 0 = all passed)
+//   node skills/global/local-model/test/lm-gate.test.mjs     (exit 0 = all passed)
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
