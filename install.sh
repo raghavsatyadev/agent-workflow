@@ -11,6 +11,8 @@
 #   config/claude/CLAUDE.md                  ~/.claude/CLAUDE.md becomes a one-line @import of it
 #   config/gemini/rules, config/git/ignore   linked (~/.gemini/rules junction; git core.excludesFile)
 #   config/gemini/GEMINI.md                  copied when missing (agy ignores imports; --config overwrites, with .bak)
+# Not installed globally: project/ (Android project kit). Link it per project with
+#   bash scripts/link-project.sh <project-dir>
 # Skills are links, so editing a skill here changes it everywhere at once. A real folder found where
 # a link goes is moved to ~/.agents/backup-<date>/, never deleted.
 # Usage: bash install.sh [--config] [--no-tools]
@@ -23,7 +25,7 @@ for a in "$@"; do
   case "$a" in
     --config) FORCE_CONFIG=1 ;;
     --no-tools) TOOLS=0 ;;
-    *) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+    *) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
   esac
 done
 BACKUP="$HOME/.agents/backup-$(date +%Y-%m-%d)"

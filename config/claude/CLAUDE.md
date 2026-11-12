@@ -16,3 +16,7 @@
   unrelated tasks through one session.
 - End every Haiku subagent prompt with "Do not call the advisor tool." (Opus advisor tokens are
   for the main session only.)
+- Android project kit: before working in an Android project, check its `.agents/` for the shared
+  agent-workflow kit (`bash <agent-workflow>/scripts/link-project.sh <project> --check`). If links
+  are missing or are real copies, ask the user whether to import them (run it, with `--replace` for
+  copies) before starting the task. Ask per project; don't import on your own.

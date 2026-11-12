@@ -52,6 +52,26 @@ Official plugins the installer also turns on (not copied here): `commit-commands
 `kotlin-lsp` from `claude-plugins-official`. agy plugins in use: `android-cli-plugin`,
 `chrome-devtools-plugin`, `firebase`, `code-review`, `commit-commands`, `plan-keeper`.
 
+### Android project kit (`project/`)
+
+Skills and rules shared by my Android/CMP projects, kept out of the global skill folders:
+`material3-expressive`, `cmp-best-practices`, `compose-screenshot-test`, `android-device-test`
+(+ `dev.sh`), `fix-issue`, `artemis-key-rotation`, `workspace-cleanup`, `project-onboarding-setup`;
+rules `android-build`, `branch-pr-policy`, `format`, `compose-previews`, `artemis-mobile-testing`,
+`parallel-agents`. Project values come from each project's `agent-kit.env` (`APP_MODULE`,
+`APP_VARIANT`, `APPLICATION_ID`, `BASE_BRANCH`, `GIT_FLOW=direct|pr|local`, `GRADLE_DIR`,
+`FORMAT_CHECK`).
+
+```bash
+bash scripts/link-project.sh ../MyApp            # relative symlinks + managed .gitignore block
+bash scripts/link-project.sh ../MyApp --replace  # also swap old copies (moved to tmp/agents-replaced/)
+bash scripts/link-project.sh ../MyApp --check    # report missing links
+```
+
+The project keeps only its own files: `.agents/rules/project.md` (overrides: theme path, build
+quirks, strings and test policy), `.agents/flows/` (Maestro flows + `flows.md`) and project-only
+rules/skills. Windows needs Developer Mode for symlinks (falls back to junctions).
+
 ### MCP servers
 
 | Server | Where | Notes |
@@ -89,5 +109,8 @@ See [THIRD_PARTY.md](THIRD_PARTY.md) for sources and licenses.
   `~/.<tool>` folders hold one-line shims that run the repo files (plus logs and state), not copies.
   Re-run `bash install.sh` only after adding or renaming a tool file.
 - **Add a skill:** `skills/<name>/SKILL.md` (plus an optional `install.sh`), then `bash install.sh`.
+- **Project kit:** edit `project/skills` or `project/rules`; linked projects see it at once. A new
+  shared skill/rule: re-run `scripts/link-project.sh` in each project. App-specific facts go in that
+  project's `.agents/rules/project.md`, never here (this repo is public).
 - **Update plan-keeper:** edit `plugins/plan-keeper/` here; Claude Code reads the plugin from this folder.
 - Never commit keys, tokens, `.env` files or logs; `.gitignore` blocks the usual names.
